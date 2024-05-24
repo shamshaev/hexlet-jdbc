@@ -1,5 +1,6 @@
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 public class Application {
     // Нужно указывать базовое исключение,
@@ -15,10 +16,26 @@ public class Application {
                 statement.execute(sql);
             }
 
-            var sql2 = "INSERT INTO users (username, phone) VALUES"
-                    + " ('tommy', '123456789'), ('mary', '987667892'), ('andrew', '876356431')";
-            try (var statement2 = conn.createStatement()) {
-                statement2.executeUpdate(sql2);
+            var sql2 = "INSERT INTO users (username, phone) VALUES (?, ?)";
+            try (var statement2 = conn.prepareStatement(sql2, Statement.RETURN_GENERATED_KEYS)) {
+                statement2.setString(1, "tommy");
+                statement2.setString(2, "123456789");
+                statement2.executeUpdate();
+
+                var generatedKeys = statement2.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    System.out.println(generatedKeys.getLong(1));
+                } else {
+                    throw new SQLException("DB have not returned an id after saving the entity");
+                }
+
+                statement2.setString(1, "mary");
+                statement2.setString(2, "987667892");
+                statement2.executeUpdate();
+
+                statement2.setString(1, "andrew");
+                statement2.setString(2, "876356431");
+                statement2.executeUpdate();
             }
 
             var sql3 = "SELECT * FROM users";
@@ -27,6 +44,21 @@ public class Application {
                 var resultSet = statement3.executeQuery(sql3);
                 // Набор данных — это итератор
                 // Мы перемещаемся по нему с помощью next() и каждый раз получаем новые значения
+                while (resultSet.next()) {
+                    System.out.println(resultSet.getString("username"));
+                    System.out.println(resultSet.getString("phone"));
+                }
+                System.out.println();
+            }
+
+            var sql4 = "DELETE FROM users WHERE username = ?";
+            try (var statement4 = conn.prepareStatement(sql4)) {
+                statement4.setString(1, "tommy");
+                statement4.executeUpdate();
+            }
+
+            try (var statement5 = conn.createStatement()) {
+                var resultSet = statement5.executeQuery(sql3);
                 while (resultSet.next()) {
                     System.out.println(resultSet.getString("username"));
                     System.out.println(resultSet.getString("phone"));
